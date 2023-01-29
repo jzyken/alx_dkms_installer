@@ -120,9 +120,25 @@ dkms_add() {
   fi
 }
 
-get_deps && get_linux_source && prepare_src && dkms_remove && dkms_add && sudo dkms autoinstall alx/$kv && sudo update-initramfs -u
+module_reload() {
+  /usr/sbin/modprobe -V &>/dev/null || return 0
+  read -rp "Reload module? [Y/n]: "
+  case $REPLY in
+    Y|y|yes|YES|"") 
+	  sudo /usr/sbin/modprobe -r alx && 
+	  sudo /usr/sbin/modprobe alx &&
+	  RELOADED=yes;;
+	*) return 0;;
+  esac
+}
+
+get_deps && get_linux_source && prepare_src && dkms_remove && dkms_add && sudo dkms autoinstall alx/$kv && sudo update-initramfs -u && module_reload
 if [ "$?" != "0" ]; then
   echo "!!! there is some error"
 else
-  echo "all ok, now you may need reboot"
+  if [[ $RELOADED = yes ]]; then
+    echo "all ok"
+  else
+    echo "all ok, now you may need reboot"
+  fi
 fi
